@@ -1,7 +1,6 @@
 import socket
 from select import select
 
-
 to_monitor = []
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -18,11 +17,11 @@ def accept_connection(server_socket):
 
 def send_message(client_socket):
     request = client_socket.recv(4096)
-    if not request:
+    if request:
         response = 'Hello world!\n'.encode()
         client_socket.send(response)
     else:
-         client_socket.close()
+        client_socket.close()
 
 
 def event_loop():
@@ -35,6 +34,7 @@ def event_loop():
                 accept_connection(sock)
             else:
                 send_message(sock)
+
 
 if __name__ == '__main__':
     to_monitor.append(server_socket)
