@@ -1,5 +1,11 @@
 import selectors
+from select import select
 from socket import *
+
+tasks = []
+
+to_read = {}
+to_write = {}
 
 
 # David Beazley, 2015 pyconn, concurrency from the ground up live
@@ -11,29 +17,50 @@ def server():
     server_socket.listen()
 
     while True:
-        yield 'read', server_socket
+        yield ('read', server_socket)
         client_socket, addr = server_socket.accept()
         print('Connection from ', addr)
-        client(client_socket)
+        tasks.append(client(client_socket))
 
 
 def client(client_socket):
     while True:
-        yield 'read', client_socket
+        yield ('read', client_socket)
         request = client_socket.recv(4096)
         if not request:
             break
         else:
             response = 'Hello world!\n'.encode()
-            yield 'send', client_socket
+            yield ('write', client_socket)
             client_socket.send(response)
     client_socket.close()
 
 
 def event_loop():
-    while True:
-        pass
+    while any([tasks, to_read, to_write]):
+
+        while not tasks:
+            ready_to_read, ready_to_write, _ = select(to_read, to_write, [])
+
+            for sock in ready_to_read:
+                tasks.append(to_read.pop(sock))
+
+            for sock in ready_to_write:
+                tasks.append(to_write.pop(sock))
+        try:
+            task = tasks.pop(0)
+            reason, sock = next(task)
+
+            if reason == 'read':
+                to_read[sock] = task
+
+            if reason == 'write':
+                to_write[sock] = task
+
+        except StopIteration:
+            print('done')
 
 
 if __name__ == '__main__':
-    server()
+    tasks.append(server())
+    event_loop()
