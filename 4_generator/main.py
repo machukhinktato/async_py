@@ -1,4 +1,3 @@
-import selectors
 from select import select
 from socket import *
 
@@ -17,6 +16,7 @@ def server():
     server_socket.listen()
 
     while True:
+        print(server_socket)
         yield ('read', server_socket)
         client_socket, addr = server_socket.accept()
         print('Connection from ', addr)
@@ -40,9 +40,11 @@ def event_loop():
     while any([tasks, to_read, to_write]):
 
         while not tasks:
+            print('first')
             ready_to_read, ready_to_write, _ = select(to_read, to_write, [])
 
             for sock in ready_to_read:
+                print('second')
                 tasks.append(to_read.pop(sock))
 
             for sock in ready_to_write:
@@ -53,6 +55,7 @@ def event_loop():
 
             if reason == 'read':
                 to_read[sock] = task
+                print(to_read[sock])
 
             if reason == 'write':
                 to_write[sock] = task
